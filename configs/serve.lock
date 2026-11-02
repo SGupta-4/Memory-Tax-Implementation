@@ -1,0 +1,17 @@
+# Pinned model servers for Kaggle T4 x2, sourced by scripts/kaggle_serve.sh.
+# Revisions are the Hub commits on 2026-11-02. Changing one changes every run_id that uses it.
+ANSWER_MODEL=Qwen/Qwen3.5-4B
+ANSWER_REV=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+EMBED_MODEL=Qwen/Qwen3-Embedding-0.6B
+EMBED_REV=97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3
+RERANK_MODEL=Qwen/Qwen3-Reranker-0.6B
+RERANK_REV=e61197ed45024b0ed8a2d74b80b4d909f1255473
+JUDGE_GGUF_REPO=unsloth/Qwen3.6-27B-GGUF
+JUDGE_GGUF_REV=82d411acf4a06cfb8d9b073a5211bf410bfc29bf
+JUDGE_GGUF_FILE=Qwen3.6-27B-Q4_K_M.gguf
+# Not pinned yet: record the versions `kaggle_serve.sh health` prints after the first
+# successful Kaggle smoke test (Phase 1), then pin them here.
+VLLM_VERSION=
+LLAMA_CPP_VERSION=
+# vLLM flag that selects embedding mode; it changed across vLLM versions.
+EMBED_FLAGS="--runner pooling"

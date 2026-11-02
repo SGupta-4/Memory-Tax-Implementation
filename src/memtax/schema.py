@@ -1,7 +1,8 @@
 """Shared records passed between stages.
 
-Purpose: one definition of a question and a verdict, so every stage joins on the same fields.
-Called by: data.py builds these records; metrics.py and cli.py consume them.
+Purpose: one definition of each per-question record, so every stage joins on the same fields.
+Called by: data.py builds questions and verdicts; systems/ build Retrieved; answer.py builds
+Answer; judge.py builds JudgeResult; pipeline.py writes them as JSONL; metrics.py reads verdicts.
 Assumes: nothing outside the standard library; this module imports no other project module.
 """
 
@@ -37,4 +38,36 @@ class Verdict:
     # ASSUMES: 0 or 1 only; loaders reject anything else, including unparsable judge replies.
     verdict: int
     # FLOW: metrics.pair() refuses to compare verdicts with different judge_id (D-020).
+    judge_id: str
+
+
+@dataclass(frozen=True)
+class Retrieved:
+    question_id: str
+    doc_ids: list[str]
+    # FLOW: answer.py joins these, in order, into the shared prompt's memory block.
+    texts: list[str]
+    round_of: list[int]
+    session_ids: list[str]  # source session of each unit, for session-level recall
+    # ASSUMES: None for abstention questions, which have no gold session.
+    session_recall: float | None
+    decisions: list[str]  # raw sufficiency replies (two-round RAG); empty otherwise
+
+
+@dataclass(frozen=True)
+class Answer:
+    question_id: str
+    answer: str
+    prompt_version: str
+    think_leak: bool  # "<think>" appeared in the reply; G1 requires none
+
+
+@dataclass(frozen=True)
+class JudgeResult:
+    """One judge call as written to verdicts.jsonl; verdict is None when unparsable."""
+
+    question_id: str
+    verdict: int | None
+    raw: str
+    prompt: str
     judge_id: str

@@ -8,15 +8,15 @@ Keep this current. Clear it when the change lands.
 
 | Field | Value |
 | --- | --- |
-| Task | Phase 1: CPU harness (chunking landed; client, retrieval, pipeline next) |
-| Bug or feature | F-002 in `BUGS.md` |
-| Files on the path | `src/memtax/chunking.py`, `src/memtax/data.py`, `src/memtax/cli.py` |
-| Entry point affected | `memtax check-chunks --against authors` |
-| Downstream that could break | Embedding reuse: the authors' `.npz` rows align with chunk order |
+| Task | Phase 1: CPU harness built; Kaggle steps next (F-002 follow-up) |
+| Bug or feature | F-002, B-005, B-006 in `BUGS.md` |
+| Files on the path | `src/memtax/pipeline.py`, `src/memtax/systems/rag.py`, `src/memtax/gates.py`, `scripts/kaggle_serve.sh` |
+| Entry point affected | `memtax run`, `memtax gate 1`, `scripts/kaggle_serve.sh` |
+| Downstream that could break | Run ids (the config identity hash) and the cache key: changing either orphans existing runs or replies |
 
 ## Entry points
 
-Built so far: `memtax audit`, `memtax smoke`, `memtax check-chunks --against authors`, and `python scripts/check_repo.py`. The rest are planned.
+Built so far: `memtax audit`, `smoke`, `check-chunks`, `run`, `check-embeddings`, `judge-agreement`, `gate 1`, `scripts/kaggle_serve.sh` (untested on GPU), and `python scripts/check_repo.py`. The rest are planned.
 
 | Command | Purpose | GPU? |
 | --- | --- | --- |
@@ -26,6 +26,7 @@ Built so far: `memtax audit`, `memtax smoke`, `memtax check-chunks --against aut
 | `memtax smoke --config configs/fixture.yaml` | Whole pipeline on a fixture and fake server | No |
 | `memtax check-chunks --against authors` | Compare chunks with authors' | No |
 | `memtax judge-agreement --dev100` | Compare your judge with authors' verdicts | Yes |
+| `memtax check-embeddings` | Own dev-100 corpus and query vectors vs the authors' (D-005) | Embedding server |
 | `memtax gate N` | Check a phase gate and print results | No |
 | `make reproduce` | Rebuild tables from published results | No |
 | `python scripts/check_repo.py` | Check control documents and docstrings | No |
@@ -73,26 +74,32 @@ hf download hexuan21/MemoryTax-Res-Qwen3-5-4B --repo-type dataset --revision 987
 ## Main path: one stage
 
 ```text
-cli.main()
-└─ pipeline.run_stage(config, stage, shard)
-   ├─ pipeline.resolve_run(config)          config hash -> run_id; writes manifest once
-   ├─ data.load_benchmark(config)           returns Benchmark adapter
-   ├─ pipeline.pending_questions(...)       all questions in this shard, minus finished ones
-   └─ for each pending question, with bounded concurrency:
-      ├─ stage == "retrieve" -> system.retrieve(question)      see below
-      ├─ stage == "answer"   -> answer.answer(question, retrieved)
-      ├─ stage == "judge"    -> judge.judge(question, answer)
-      └─ pipeline.append_record(...)        flush one JSONL line, so a crash loses at most one
+cli.run(config, stage, "i/n")
+└─ pipeline.run_stage(cfg, stage, i, n)        cfg from pipeline.load_config (validated)
+   ├─ data.verify_sha256 + data.load_questions
+   ├─ pipeline.select_questions(subset, limit) then pipeline.shard(i, n)
+   ├─ pipeline.ensure_manifest(cfg)          run_id = hash of cfg.identity; written once
+   ├─ pipeline.read_records(stage file)      finished questions; cuts a crash-truncated tail
+   └─ for each pending question, at most cfg.concurrency at once:
+      ├─ stage == "retrieve" -> system.build(q); system.retrieve(q)     see below
+      ├─ stage == "answer"   -> answer.answer(client, ep, q, Retrieved)
+      ├─ stage == "judge"    -> judge.judge(client, ep, q, Answer)
+      ├─ LLMError            -> counted as failed, not written; a rerun retries it
+      └─ pipeline.append_record(...)        one fsynced JSONL line per question
+   then append the stage summary (counts, usage per operation) to manifest.json
 ```
 
 Each answer and judge call goes through the same route:
 
 ```text
-llm.chat(messages, settings)
-├─ key = sha256(model, revision, prompt_version, messages, settings)
-├─ cache hit?  -> return stored reply
-└─ cache miss  -> POST to server with retries -> store -> count tokens -> return reply
+llm.Client.chat(ep, messages, op, prompt_version, max_tokens, attempt)
+├─ key = sha256(kind, model, revision, prompt_version, payload, attempt)
+├─ cache hit?  -> stored reply; usage still counted, plus cache_hits
+└─ cache miss  -> POST with retries and backoff -> validate -> store -> count tokens
+   └─ still failing -> failed_calls += 1; raise LLMError
 ```
+
+`embed` and `rerank` follow the same route. Corpus embeddings skip the cache and are saved as `.npz` by `RagSystem.build` (D-032).
 
 ## Retrieval paths
 
@@ -100,19 +107,21 @@ llm.chat(messages, settings)
 
 ```text
 systems/rag.RagSystem.retrieve(q)
-├─ retrieval.bm25_top_k(q, k=10)
-├─ retrieval.dense_top_k(q, k=10)         embeddings from index stage
-├─ retrieval.union_dedup(...)
-└─ llm.rerank(...) -> top 10
+├─ chunking.chunk_history(q)
+├─ _matrix(q)                             own .npz from build(), or the authors' sample{i}.npz
+├─ retrieval.BM25(texts).scores(question) -> top_k 10
+├─ llm.embed(query prefix + question)     -> retrieval.dense_scores -> top_k 10
+├─ retrieval.union(bm25, dense)
+└─ llm.rerank(question, candidates) -> top 10; session_recall logged
 ```
 
 **Two-round RAG**
 
 ```text
 RagSystem.retrieve(q) as above
-└─ llm.chat(sufficiency prompt)
-   ├─ enough -> stop
-   └─ follow-up query -> retrieval over the remaining pool -> merge both rounds
+└─ llm.chat(SUFFICIENCY_PROMPT, answer endpoint)        D-030
+   ├─ parse_sufficiency -> sufficient or unparsable -> stop
+   └─ next_query -> the same round over chunks not yet picked -> round 1 + round 2 units
 ```
 
 **SimpleMem replay**
@@ -174,13 +183,17 @@ cli metrics
 ## Order of a full Phase 1 session on Kaggle
 
 ```text
-1. scripts/kaggle_serve.sh answer     start 4B on GPU 0; embedding and reranker on GPU 1
-2. Health check                       one call per endpoint; no <think> text allowed
-3. memtax run --stage index
-4. memtax run --stage retrieve
-5. memtax run --stage answer
-6. Upload run and cache to private HF dataset, at least hourly and before session end
-7. New session: kaggle_serve.sh judge
-8. memtax run --stage judge
-9. Upload, then memtax metrics
+Answer session (T4 x2):
+1. scripts/kaggle_serve.sh answer      4B on GPU 0; embedding and reranker on GPU 1
+2. scripts/kaggle_serve.sh health      every endpoint OK, no_think=true; pin versions in serve.lock
+3. memtax run --config configs/kaggle/rag1_dev100.yaml --stage retrieve     builds own dev indexes
+4. memtax check-embeddings             MATCH -> set embeddings: authors in the *_all configs (D-005)
+5. for C in no_context gold rag1 rag2:  memtax run --config configs/kaggle/${C}_dev100.yaml --stage retrieve, then --stage answer
+6. the same for ${C}_all, then rag1_repeat20 (retrieve, answer)
+7. Upload runs/ and runs/cache.sqlite to the private HF dataset, at least hourly and before the end
+Judge session:
+8. scripts/kaggle_serve.sh judge; scripts/kaggle_serve.sh health
+9. memtax judge-agreement --dev100     >= 90% (D-009 fallback if not)
+10. memtax run --config <each config> --stage judge
+11. memtax gate 1; upload
 ```

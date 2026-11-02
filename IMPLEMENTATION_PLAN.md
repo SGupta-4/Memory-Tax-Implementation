@@ -164,14 +164,14 @@ Goal: prove the metric code matches the paper before spending any GPU time.
 
 Goal: show your RAG reproduces theirs. Build it on CPU against a fake model server first, so Kaggle time isn't spent debugging logic.
 
-- [ ] Write `chunking.py` from Appendix A.2. Compare with the authors' `buffer` chunks on all 500.
-- [ ] Write the `llm.py` client and cache, with accounting per operation, and count failed calls in the manifest.
-- [ ] Write `tests/fake_server.py` and run the whole pipeline on a 4-question fixture with no GPU.
+- [x] Write `chunking.py` from Appendix A.2. Compare with the authors' `buffer` chunks on all 500.
+- [x] Write the `llm.py` client and cache, with accounting per operation, and count failed calls in the manifest.
+- [x] Write `tests/fake_server.py` and run the whole pipeline on a 4-question fixture with no GPU.
 - [ ] Write `kaggle_serve.sh`. Smoke-test Qwen3.5-4B, embedding, and reranking on T4 x2.
 - [ ] Confirm no `<think>` text appears in answers. A [vLLM issue](https://github.com/vllm-project/vllm/issues/35574) reports `enable_thinking: false` being ignored in one image.
 - [ ] Measure tokens per second and update `SLOWDOWN` in `plan_numbers.py`.
 - [ ] Embed the dev 100 yourself and compare with the authors' `.npz` files. If they match, reuse theirs.
-- [ ] Write `retrieval.py`, `systems/rag.py`, `answer.py`, `judge.py`, `pipeline.py`, and `cli.py`.
+- [x] Write `retrieval.py`, `systems/rag.py`, `answer.py`, `judge.py`, `pipeline.py`, and `cli.py`.
 - [ ] Set up the judge. Judge the authors' RAG answers and compare with their verdicts.
 - [ ] Run No Context, Gold Context, and RAG (one and two rounds) on dev 100, then all 500.
 - [ ] Log session-level recall so retrieval bugs show up separately from answer bugs.

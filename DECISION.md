@@ -258,3 +258,58 @@ Seeded entries were decided while planning on 2026-11-02.
 - **Alternatives:** A literal reading of the paper (sizes counting text only, overlap after every flush, `> 1024` for long turns) matched 0 of 60 histories.
 - **Tradeoff accepted:** Some rules, like the overlap quirk, reproduce their implementation rather than an obviously better design.
 - **Revisit if:** Never for the replication; the medication benchmark reuses the same rules.
+
+## D-029: Retrieval details the paper leaves open
+
+- **Date, phase, status:** 2026-11-02, Phase 1, accepted; BM25 differs from the authors' (B-006)
+- **Decision:**
+  - **BM25:** Okapi BM25 with Lucene's idf `log(1 + (N - df + 0.5) / (df + 0.5))`, k1 1.5, b 0.75, and lowercase `\w+` tokens, over each history's chunks.
+  - **Dense:** cosine similarity of the query vector with every chunk vector.
+  - **Ties:** broken by chunk order.
+  - **Queries:** embedded with Qwen3-Embedding's standard instruction, `Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:`.
+  - **Reranking:** uses the Qwen3-Reranker model card template and its default instruction, served by vLLM's `/rerank`.
+- **Why:** The paper names the models but not these settings. Dense matches the authors' to about 0.001 cosine on their own vectors. Their query file records `query_prompt: true`, which fits the standard instruction; `memtax check-embeddings` confirms it on Kaggle.
+- **Alternatives:** A library such as `rank_bm25` or `bm25s`. A search over tokenizers, idf formulas, k1, and stopwords found no variant that reproduces the authors' BM25 scores (B-006), so a dependency buys nothing.
+- **Tradeoff accepted:** Our candidate pools differ slightly from the authors', so G1's ±3-point and 85% agreement checks carry that difference.
+- **Revisit if:** G1's RAG accuracy or agreement fails. Then try stemming next (B-006).
+
+## D-030: Pieces we define because the paper doesn't publish them
+
+- **Date, phase, status:** 2026-11-02, Phase 1, accepted
+- **Decision:**
+  - **Sufficiency prompt:** our own, `memtax/sufficiency-v1` in `systems/rag.py`. It asks for `{"sufficient", "why", "next_query"}`, the same fields the authors' two-round records log. An unparsable reply stops after round one, and an empty `next_query` falls back to the question. Round two searches only the chunks round one didn't pick.
+  - **RAG memory block:** chunk texts joined by blank lines.
+  - **Gold Context:** renders `has_answer` turns as `(<date>) [role: r]: text`, the authors' evidence format.
+- **Why:** None of these is in the paper or the released code. Two-round RAG isn't gated for this reason (plan section 6).
+- **Alternatives:** Copying the sufficiency prompt from another system would still be a guess.
+- **Tradeoff accepted:** Two-round results and some RAG-versus-authors differences may come from these choices.
+- **Revisit if:** The authors release their harness.
+
+## D-031: How G1 is computed, set before any run
+
+- **Date, phase, status:** 2026-11-02, Phase 1, accepted (preregistered with `configs/gates.yaml`)
+- **Decision:**
+  - **RAG accuracy:** a missing or unparsable verdict counts as wrong.
+  - **Agreements:** computed over parsable verdicts, while the failure-rate check caps how many are missing or unparsable.
+  - **Judge agreement:** judged on the authors' dev-100 one-round RAG answers (`pred`), with no question left unjudged.
+  - **Repeat check:** `configs/kaggle/rag1_repeat20.yaml`, the first 20 dev questions by id with the cache off, compared with `rag1_all` verdicts.
+  - **Embedding reuse (D-005):** the authors' vectors are reused only if mean row cosine is at least 0.999 for both dev-100 corpus vectors and query vectors.
+- **Why:** The plan lists the thresholds but not these accounting rules, and they must be fixed before results exist.
+- **Alternatives:** Excluding unparsable verdicts from accuracy would hide judge failures inside a smaller denominator.
+- **Tradeoff accepted:** A run with failures scores slightly lower than its parsable verdicts suggest.
+- **Revisit if:** Never after results, without a human (CLAUDE.md).
+
+## D-032: Harness engineering choices
+
+- **Date, phase, status:** 2026-11-02, Phase 1, accepted
+- **Decision:**
+  - **HTTP:** standard-library `urllib`, run in worker threads behind an `asyncio` semaphore.
+  - **Corpus embeddings:** stored as `.npz` per history under `data/index/<model>@<revision>/`, not in the SQLite cache. Query, chat, and rerank calls are cached.
+  - **Run ids:** `run_id` hashes only settings that change results (dataset hash, subset, system, model and revision per role, `limit`, `use_cache`), not paths, base URLs, or concurrency.
+  - **Retries:** a failed question is not written, so rerunning the same command retries it.
+  - **Crash recovery:** a crash-truncated final JSONL line is cut off on the next read.
+  - **Judge retry:** a retry of an unparsable verdict carries `attempt` in its cache key.
+- **Why:** No new dependency is needed for four endpoints. Cached vectors would bloat the cache to gigabytes. Resuming from another Kaggle session must reach the same run.
+- **Alternatives:** `httpx` or `aiohttp` (a new dependency for little gain); hashing the whole config (a new run on every path change).
+- **Tradeoff accepted:** Threads, not true async I/O; fine at concurrency 8.
+- **Revisit if:** Concurrency needs to go far above about 32.

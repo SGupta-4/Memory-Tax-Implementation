@@ -1,6 +1,20 @@
-# Smoke config: 4 invented questions, one per pairing outcome (both right, benefit, tax,
-# both wrong). Runs with no network or GPU. Paths are relative to the repo root.
+# Smoke config: the 4-question fixture through every stage of RAG, with no network or GPU.
+# `memtax smoke` replaces each base_url with the fake server's, sets temporary paths, and runs
+# rounds 1 and 2. Model names and revisions are placeholders the fake server ignores.
+name: fixture-rag
 questions: tests/fixtures/longmemeval_fixture.json
-system: tests/fixtures/verdicts_system.jsonl
-reference: tests/fixtures/verdicts_reference.jsonl
-judge_id: fixture-judge
+questions_sha256: 8207a3f431f0d58b736df7fb4ab0945ad80d3135d103834d3c1c0f398b1f94f7
+subset: all
+system:
+  name: rag
+  rounds: 1
+  bm25_k: 2
+  dense_k: 2
+  rerank_k: 2
+  embeddings: own
+endpoints:
+  answer: {base_url: fake, model: fake-answer, revision: fake}
+  embed: {base_url: fake, model: fake-embed, revision: fake}
+  rerank: {base_url: fake, model: fake-rerank, revision: fake}
+  judge: {base_url: fake, model: fake-judge, revision: fake}
+concurrency: 4

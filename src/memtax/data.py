@@ -185,3 +185,19 @@ def load_author_chunks(path: Path) -> dict[str, list[AuthorChunk]]:
             raise ValueError(f"{path}: duplicate history {qid}")
         out[qid] = chunks
     return out
+
+
+def load_author_answers(path: Path) -> dict[str, str]:
+    """The authors' `qa_results.jsonl`: question_id -> the answer text they judged (`pred`)."""
+    out: dict[str, str] = {}
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        qid, pred = record.get("question_id"), record.get("pred")
+        if not isinstance(qid, str) or not isinstance(pred, str):
+            raise ValueError(f"{path}:{n}: needs text question_id and pred")
+        if qid in out:
+            raise ValueError(f"{path}:{n}: second answer for {qid}")
+        out[qid] = pred
+    return out

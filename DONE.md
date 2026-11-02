@@ -47,7 +47,7 @@ Record each gate's output, then tag it.
 | Gate | Command | Expected | Tag |
 | --- | --- | --- | --- |
 | G0 | `memtax audit --bench longmemeval_s` | `simplemem=60.2 rag1=70.2 rag2=72.2 tax=18.2±0.1 benefit=8.2±0.1 n=500`. Real form: first line prints values without `±`, two CI lines follow, and the last line is `G0 PASS`, with exit 0 ([D-025](DECISION.md)) | `phase-0-pass` |
-| G1 | `memtax gate 1` | Chunks ≥99%; judge ≥90%; RAG within ±3 of 70.2; agreement ≥85%; `no_think=true`; failures ≤1%; repeat ≥95% | `phase-1-pass` |
+| G1 | `memtax gate 1` | Chunks ≥99%; judge ≥90%; RAG within ±3 of 70.2; agreement ≥85%; `no_think=true`; failures ≤1%; repeat ≥95%. Real form: one `PASS`/`FAIL` line per criterion, then `G1 PASS`; it reads `configs/kaggle/rag1_all.yaml` and `rag1_repeat20.yaml` by default ([D-031](DECISION.md)) | `phase-1-pass` |
 | G2 | `memtax gate 2` | At least 7 of 10 builds match; store size within ±20%; replay within ±3 of 60.2; agreement ≥85% | `phase-2-pass` |
 | G3 | `memtax gate 3` | H2 has CI and McNemar p; held-out run count = 1, or deviations logged; commit is at or after `prereg-h2` | `phase-3-pass` |
 | G4 | `memtax gate 4` | Two generations hash equal; every question traces to evidence; CIs by patient | `phase-4-pass` |

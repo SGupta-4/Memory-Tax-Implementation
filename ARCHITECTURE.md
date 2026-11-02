@@ -48,7 +48,7 @@ flowchart TD
 
 ## Modules
 
-Built in Phase 0: `schema.py` (`Question`, `Turn`, `Verdict` only), `data.py` (question, verdict, and authors' chunk loaders), `metrics.py`, and `cli.py` (`audit`, `smoke`, `check-chunks`). Built in Phase 1 so far: `chunking.py`. Everything else in this table is planned ([D-024](DECISION.md)).
+Built in Phase 0: `schema.py` (`Question`, `Turn`, `Verdict` only), `data.py` (question, verdict, and authors' chunk loaders), `metrics.py`, and `cli.py` (`audit`, `smoke`, `check-chunks`). Built in Phase 1: `chunking.py`, `llm.py`, `retrieval.py`, `systems/base.py`, `systems/rag.py`, `systems/baselines.py` (No Context, Gold), `answer.py`, `judge.py`, `pipeline.py`, `gates.py`, `vendor.py`, and `tests/fake_server.py`. `systems/simplemem.py`, `systems/src_aug.py`, `extension/medmem/`, and the `Manifest` record type are still planned; the manifest is a plain JSON object for now ([D-024](DECISION.md)).
 
 | Module | Responsibility | Must not |
 | --- | --- | --- |
@@ -59,12 +59,15 @@ Built in Phase 0: `schema.py` (`Question`, `Turn`, `Verdict` only), `data.py` (q
 | `retrieval.py` | BM25, dense search, union, rerank | Know how answers are produced |
 | `systems/base.py` | `MemorySystem` protocol: `build`, `retrieve` | Contain logic |
 | `systems/rag.py` | One-round and two-round RAG | Touch stores |
+| `systems/baselines.py` | No Context and Gold Context references | Call models |
 | `systems/simplemem.py` | Live and replay modes | Modify upstream code |
 | `systems/src_aug.py` | Pool, jointly rerank, and fill a token budget | Choose a budget on held-out data |
 | `answer.py` | Renders context with the shared prompts | Vary prompts by system |
 | `judge.py` | Runs the authors' judge prompts and parses verdicts | See the system's name |
 | `metrics.py` | Pure functions over verdicts: tax, benefit, CIs, tests | Call models or read config |
 | `pipeline.py` | Runs stages, resumes, shards, writes manifests | Contain research logic |
+| `gates.py` | Computes gate criteria from runs and authors' files | Change thresholds; they live in `configs/gates.yaml` |
+| `vendor.py` | Loads the hash-checked authors' prompt modules | Edit or wrap prompts |
 | `cli.py` | Command-line entry point | Contain logic |
 | `extension/medmem/` | Generates and checks the medication benchmark | Depend on pipeline internals |
 | `tests/fake_server.py` | Stands in for model servers in CI | Ship in the package |
@@ -76,7 +79,7 @@ memory-tax-replication/
 ├── CLAUDE.md, IMPLEMENTATION_PLAN.md, and the other project documents
 ├── pyproject.toml, uv.lock, .pre-commit-config.yaml; Makefile and THIRD_PARTY.md in Phase 5
 ├── .github/workflows/ci.yml
-├── configs/          base, fixture, one per experiment; serve.lock pins server versions
+├── configs/          fixture.yaml, gates.yaml, kaggle/*.yaml (one per run), serve.lock (models, revisions)
 ├── vendor/memorytax/ authors' prompts at 179e6a7, with LICENSE and HASHES.sha256
 ├── src/memtax/       the modules below
 ├── extension/medmem/ medication benchmark

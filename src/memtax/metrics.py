@@ -96,3 +96,13 @@ def bootstrap_ci(
     means = per_question[idx].mean(axis=1)
     lo, hi = np.percentile(means, [2.5, 97.5])
     return float(lo), float(hi)
+
+
+def agreement(a: dict[str, int], b: dict[str, int]) -> float:
+    """Share of questions where two verdict sets agree; for judge and replication checks.
+
+    Unlike pair(), this deliberately compares different judges, so it never feeds tax or benefit.
+    """
+    if a.keys() != b.keys() or not a:
+        raise ValueError(f"agreement needs the same non-empty question set ({len(a)} vs {len(b)})")
+    return sum(a[q] == b[q] for q in a) / len(a)

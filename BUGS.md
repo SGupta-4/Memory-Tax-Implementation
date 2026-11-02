@@ -117,17 +117,76 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
 
 ## F-002: Phase 1 harness on CPU
 
-- **Status:** in progress
+- **Status:** in progress; the CPU harness is built and tested, and the GPU steps wait for Kaggle
 - **Scoped by:** `IMPLEMENTATION_PLAN.md`, Phase 1: build the harness on CPU against a fake server before any Kaggle time.
-- **Evidence:** Gate G1 (`configs/gates.yaml`, thresholds set on 2026-11-02, before any run).
+- **Evidence:** Gate G1 (`configs/gates.yaml` and D-031, set on 2026-11-02 before any run).
 - **Tried:**
   1. Chunker from Appendix A.2 as written -> 0/60 histories matched the authors'.
   2. Rules found by diffing against the authors' chunks (D-028) -> 500/500.
-- **Verified by:** `uv run memtax check-chunks --against authors`:
+  3. Built `llm.py` (cache and accounting), `tests/fake_server.py`, `retrieval.py`, `systems/` (RAG, No Context, Gold), `answer.py`, `judge.py`, `pipeline.py`, and `gates.py`. Added the commands `run`, `check-embeddings`, `judge-agreement`, and `gate 1`; `smoke` now runs the whole pipeline.
+  4. Wrote `scripts/kaggle_serve.sh`, `configs/serve.lock` (model revisions pinned from the Hub), and `configs/kaggle/*.yaml`.
+  5. Rebuilt our candidate pools from the authors' own embeddings -> dense matches, BM25 doesn't (B-006).
+- **What didn't:** Matching the authors' BM25 scores (B-006).
+- **Verified by:**
 
   ```text
+  $ uv run memtax check-chunks --against authors
   chunks match: 500/500 histories (100.0%)
   G1 chunks PASS (need 99%)
+  $ uv run memtax smoke --config configs/fixture.yaml
+  smoke OK: 4 questions, identity holds
   ```
 
-- **Follow-up:** the model client and cache, the fake server, retrieval, RAG, answer, judge, pipeline, and `kaggle_serve.sh`.
+  Universal gate and change-specific checks, run 2026-11-02 through `uv run`:
+
+  ```text
+  $ uv run ruff check . && uv run ruff format --check .
+  All checks passed!
+  43 files already formatted
+  $ uv run mypy src
+  Success: no issues found in 17 source files
+  $ uv run pytest -q -m "not gpu"
+  59 passed
+  $ uv run python scripts/check_repo.py
+  OK
+  $ uv run pytest tests/test_vendor_hash.py tests/test_cache.py tests/test_resume.py -q
+  10 passed
+  $ uv run memtax audit --bench longmemeval_s | tail -1
+  G0 PASS
+  $ uv lock --check
+  exit 0
+  ```
+
+  `scripts/kaggle_serve.sh` passes `bash -n` only; it is untested until a GPU session.
+- **Follow-up, on Kaggle (FLOW.md "Order of a full Phase 1 session"):**
+  1. Serve, then health check: `no_think=true`; pin versions in `serve.lock`.
+  2. Measure tokens per second; update `SLOWDOWN`.
+  3. Run `rag1_dev100` with own embeddings, then `memtax check-embeddings` -> reuse the authors' vectors if they match.
+  4. Run dev 100, then all 500, for No Context, Gold, and RAG one and two rounds; then the repeat run.
+  5. In a judge session, run `memtax judge-agreement --dev100`, judge all runs, then `memtax gate 1`.
+
+## B-005: Authors' RAG answers used an older prompt version for 470 questions
+
+- **Status:** open, low risk; recorded for G1
+- **Found by:** Reading `prompt_version` in the authors' `qa_results.jsonl` while building `answer.py`.
+- **Evidence:** One- and two-round RAG used `longmemeval/unified-v2-preference` for 470 questions and `unified-v3-pref` for the 30 `single-session-preference` questions. SimpleMem used `unified-v3-pref` for all 500. The vendored prompt at `179e6a7` is `unified-v3-pref`.
+- **Tried:** Nothing to fix: v2's text isn't published. The name suggests v3 changed only the preference prompt, and the authors re-answered exactly those 30 with it.
+- **What worked:** Our runs use `unified-v3-pref` for every system, as the shared-prompt rule requires.
+- **Verified by:** Not verifiable without v2's text.
+- **Follow-up:** If G1's RAG agreement falls short, check whether disagreements cluster outside preference questions. Ask the authors if needed.
+
+## B-006: Our BM25 doesn't reproduce the authors' BM25 scores
+
+- **Status:** open; its effect is measured by G1
+- **Found by:** Rebuilding round-one candidate pools on CPU from the authors' own query and chunk embeddings, with our BM25, and comparing with their records.
+- **Evidence:**
+  - Their final top 10 lies fully inside our candidate pool for 276/500 questions, with mean coverage 0.941.
+  - Our pool size equals theirs on 292/500 questions.
+  - Dense scores match theirs within about 0.001 cosine.
+  - Our BM25 scores for their BM25-sourced chunks differ by a ratio of 0.40 to 1.15 (median 0.81).
+- **Tried:**
+  1. Tokenizers (`split`, `\w+`, `\w\w+`), idf (Lucene, Okapi with epsilon floor, `log(N/df)`), k1 (0.9, 1.2, 1.5), header in or out -> no exact match; best mean error 1.10.
+  2. The same with Lucene's English stopwords -> best mean error 0.94; under 1% exact.
+- **What worked:** Nothing yet; stopped after two rounds rather than tune open-endedly.
+- **Verified by:** Pending G1.
+- **Follow-up:** If G1's RAG checks fail, try stemming (Snowball, as `bm25s` can apply), and ask the authors for their BM25 settings. Log any change under D-029.
