@@ -8,11 +8,11 @@ Keep this current. Clear it when the change lands.
 
 | Field | Value |
 | --- | --- |
-| Task | Phase 0: G0 audit waiting on the dataset file; large-file hosts blocked (B-004) |
-| Bug or feature | F-001 in `BUGS.md` |
-| Files on the path | `src/memtax/data.py`, `src/memtax/cli.py` |
-| Entry point affected | `memtax audit --bench longmemeval_s` |
-| Downstream that could break | `tests/test_metrics.py` real-data test; G0 output in `BUGS.md` F-001 |
+| Task | None; Phase 0 landed (F-001 verified). Phase 1 not started |
+| Bug or feature | None |
+| Files on the path | None |
+| Entry point affected | None |
+| Downstream that could break | None |
 
 ## Entry points
 
@@ -36,6 +36,7 @@ Built so far: `memtax audit`, `memtax smoke`, and `python scripts/check_repo.py`
 ```text
 cli.main(["audit", "--bench", "longmemeval_s"])
 └─ cli.audit(data_dir)
+   ├─ data.verify_sha256(...)                               pinned dataset hash (B-001)
    ├─ data.load_questions(longmemeval/longmemeval_s.json)    validates fields; ids unique
    ├─ data.load_verdicts(folder, AUTHORS_JUDGE_ID)          for simplemem, rag1, rag2 (D-023)
    ├─ cli._check_ids(...)                                   each run's ids == dataset ids (B-001)
@@ -56,7 +57,10 @@ data/longmemeval/longmemeval_s.json
 data/authors/res_simplemem_longmemeval_s_4b/judge_res/judge.jsonl                     verdicts read by audit
 data/authors/res_simplemem_longmemeval_s_4b/{qa_res,cost}/, memories.tar.gz            answers, costs, stores
 data/authors/naive_baselines/res_rag_hybrid_{1rd,2rd}_longmemeval_s_4b/judge_res/judge.jsonl
+data/stores/memories/<question_id>/                                                     extracted stores (D-027)
 ```
+
+Extract the stores with `tarfile.open(path).extractall("data/stores", filter="data")`. Large files need `us.aws.cdn.hf.co` allowed (B-004).
 
 Download with the `hf` CLI. The dataset file is named `longmemeval_s` on the Hub, with no extension:
 

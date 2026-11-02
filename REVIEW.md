@@ -74,3 +74,13 @@ These can't be settled by planning. Each has a gate.
 ## What was deliberately left out
 
 Docker, MLflow, Airflow, a vector database, and more memory systems. [D-011](DECISION.md) and [D-012](DECISION.md) explain why, and when to revisit that. They would look more "enterprise", but wouldn't make these results more trustworthy.
+
+## Phase notes
+
+### Phase 0: 2026-11-02
+
+- **Gate:** G0 passed. `memtax audit` gives simplemem 60.2, rag1 70.2, rag2 72.2, tax 18.2, and benefit 8.2 at n=500, with matching question ids and a pinned dataset hash. Output is in `BUGS.md` F-001.
+- **GPU hours used:** 0.
+- **Scope changes:** none. Plan section 5 now uses construction cost over 500 histories: about 22 GPU hours instead of 24 (B-003). No gate changed.
+- **Approval conditions closed:** 1 (G0 reproduces the authors' numbers) and 2 (`memories.tar.gz` loads, and every retrieved id resolves; D-027). Conditions 3 to 5 belong to Phase 1.
+- **Lost time:** network blocks in the cloud environment (B-004).

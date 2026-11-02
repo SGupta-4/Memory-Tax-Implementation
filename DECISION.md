@@ -229,3 +229,16 @@ Seeded entries were decided while planning on 2026-11-02.
 - **Alternatives:** Keep walking whole folders. That works today, but would silently pick up any future file with a matching key.
 - **Tradeoff accepted:** A layout change in the authors' repo needs a path change here; the revision pin prevents surprise changes.
 - **Revisit if:** The pinned revision changes.
+
+## D-027: Format of the authors' SimpleMem stores (`memories.tar.gz`)
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted
+- **Decision:** Extract `res_simplemem_longmemeval_s_4b/memories.tar.gz` (revision `987bfe5f`, sha256 `8367f3c2…b643`) with `tarfile` and `filter="data"` into `data/stores/`. Phase 2's replay mode reads the format below.
+- **Format, as inspected:** 1,500 regular files (485 MB), with no links and no absolute or `..` paths, under `memories/<question_id>/`. Each of the 500 questions, including the `_abs` ones, has three files:
+  - `memory_entries.json`: `{question_id, n_entries, entries}`. Each entry has `entry_id` (UUID), `lossless_restatement`, `keywords`, `timestamp`, `location`, `persons`, `entities`, and `topic`. Stores hold 1,057 to 1,917 entries; the median is 1,448.
+  - `provenance.jsonl`: one `{entry_id, src_dids}` per entry, linking a unit to the turns it came from.
+  - `did_map.json`: turn id -> `[n, session_index, turn_index]` into `haystack_sessions`. All 246,918 indices are valid. `n` equals `len(content) // 3` in 246,886 cases, and the 32 exceptions aren't explained yet. 493 of 500 maps cover every turn.
+- **Why it matters:** All 27,987 ids in the SimpleMem `qa_res` `retrieved_ids` (parsed with `ast.literal_eval`) resolve to `entry_id`s in these stores, so replay can rebuild every memory block. `provenance` plus `did_map` link units back to gold turns, which Phase 3 accessibility needs.
+- **Alternatives:** None; this records what the files are.
+- **Tradeoff accepted:** The meaning of `n` is inferred, not documented; Phase 3 must confirm it before relying on it.
+- **Revisit if:** The 32 `n` mismatches or the 7 partial maps matter for Phase 3 accessibility.

@@ -6,6 +6,7 @@ Assumes: files were downloaded as in FLOW.md "Phase 0 data layout"; contents are
 JSON, so this module parses with json only and never uses eval or pickle.
 """
 
+import hashlib
 import json
 from collections.abc import Iterator
 from pathlib import Path
@@ -23,6 +24,16 @@ _QUESTION_LIST_FIELDS = (
 # WHY: the authors' verdict layout could not be inspected (HF blocked, B-004), so the loader
 # accepts these field names in priority order and fails loudly if none is present.
 VERDICT_KEYS = ("verdict", "judge_verdict", "label", "judge_label", "correct", "is_correct")
+
+# PAPER: B-001; Hub LFS sha256 of `longmemeval_s` at revision 2ec2a557f3, verified 2026-11-02.
+LONGMEMEVAL_S_SHA256 = "08d8dad4be43ee2049a22ff5674eb86725d0ce5ff434cde2627e5e8e7e117894"
+
+
+def verify_sha256(path: Path, expected: str) -> None:
+    with path.open("rb") as f:
+        actual = hashlib.file_digest(f, "sha256").hexdigest()
+    if actual != expected:
+        raise ValueError(f"{path}: sha256 {actual} is not the pinned {expected}")
 
 
 def load_questions(path: Path) -> list[Question]:

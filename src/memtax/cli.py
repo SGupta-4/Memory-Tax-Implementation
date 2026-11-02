@@ -53,6 +53,7 @@ def _ci_text(per_question: metrics.IntArray) -> str:
 
 
 def audit(data_dir: Path) -> int:
+    data.verify_sha256(data_dir / AUDIT_QUESTIONS, data.LONGMEMEVAL_S_SHA256)
     questions = data.load_questions(data_dir / AUDIT_QUESTIONS)
     runs = {k: data.load_verdicts(data_dir / p, AUTHORS_JUDGE_ID) for k, p in AUDIT_RUNS.items()}
     for name, verdicts in runs.items():

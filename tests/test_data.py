@@ -54,3 +54,10 @@ def test_no_verdicts_reports_keys_seen(tmp_path: Path) -> None:
     (tmp_path / "v.json").write_text(json.dumps([{"question_id": "a", "judge_raw": "?"}]))
     with pytest.raises(ValueError, match="judge_raw"):
         data.load_verdicts(tmp_path, "j")
+
+
+def test_dataset_hash_mismatch_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "longmemeval_s.json"
+    path.write_text("[]")
+    with pytest.raises(ValueError, match="pinned"):
+        data.verify_sha256(path, data.LONGMEMEVAL_S_SHA256)

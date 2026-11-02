@@ -1,9 +1,10 @@
+import hashlib
 import json
 from pathlib import Path
 
 import pytest
 
-from memtax import cli
+from memtax import cli, data
 
 ROOT = Path(__file__).parents[1]
 
@@ -21,7 +22,7 @@ def test_audit_without_data_fails(tmp_path: Path) -> None:
         cli.main(["audit", "--bench", "longmemeval_s", "--data-dir", str(tmp_path)])
 
 
-def _write_audit_layout(root: Path, rag2_correct: int) -> None:
+def _write_audit_layout(root: Path, rag2_correct: int, monkeypatch: pytest.MonkeyPatch) -> None:
     """Synthetic 500-question layout shaped like the published ledger counts, not real data."""
     ids = [f"q{i:03d}" for i in range(500)]
     question = {
@@ -38,6 +39,9 @@ def _write_audit_layout(root: Path, rag2_correct: int) -> None:
     (root / cli.AUDIT_QUESTIONS).write_text(
         json.dumps([{"question_id": q, **question} for q in ids])
     )
+    # WHY: the synthetic file can't match the real dataset hash; pin the check to its own hash.
+    digest = hashlib.sha256((root / cli.AUDIT_QUESTIONS).read_bytes()).hexdigest()
+    monkeypatch.setattr(data, "LONGMEMEVAL_S_SHA256", digest)
     pairs = [(1, 0)] * 41 + [(1, 1)] * 260 + [(0, 1)] * 91 + [(0, 0)] * 108
     verdicts = {
         "simplemem": [p[0] for p in pairs],
@@ -53,15 +57,19 @@ def _write_audit_layout(root: Path, rag2_correct: int) -> None:
         path.write_text("\n".join(lines))
 
 
-def test_audit_g0_pass(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    _write_audit_layout(tmp_path, rag2_correct=361)
+def test_audit_g0_pass(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_audit_layout(tmp_path, rag2_correct=361, monkeypatch=monkeypatch)
     assert cli.main(["audit", "--bench", "longmemeval_s", "--data-dir", str(tmp_path)]) == 0
     out = capsys.readouterr().out.splitlines()
     assert out[0] == "simplemem=60.2 rag1=70.2 rag2=72.2 tax=18.2 benefit=8.2 n=500"
     assert out[-1] == "G0 PASS"
 
 
-def test_audit_g0_fail(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    _write_audit_layout(tmp_path, rag2_correct=360)
+def test_audit_g0_fail(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_audit_layout(tmp_path, rag2_correct=360, monkeypatch=monkeypatch)
     assert cli.main(["audit", "--bench", "longmemeval_s", "--data-dir", str(tmp_path)]) == 1
     assert capsys.readouterr().out.splitlines()[-1] == "G0 FAIL: rag2=72.0 (want 72.2)"
