@@ -105,6 +105,7 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
 
 - **Status:** partly fixed on 2026-11-02. huggingface.co is reachable; large-file CDN hosts are still denied
 - **2026-11-02 update:** API calls and small files work. Large (LFS and Xet) files redirect to hosts that answer `CONNECT tunnel failed, response 403`: `cas-bridge.xethub.hf.co`, `cas-server.xethub.hf.co`, `cdn-lfs.huggingface.co`, `cdn-lfs.hf.co`, and `transfer.xethub.hf.co`. This blocks `longmemeval_s` and every `memories.tar.gz`.
+- **2026-11-02, second update:** after those five hosts were allowed, they answer. But both the Xet and plain LFS routes now redirect the file data to `us.aws.cdn.hf.co` (for example `/xet-bridge-us/...` for `longmemeval_s`, which is 278,025,796 bytes), and the proxy rejects that host. Allowing `us.aws.cdn.hf.co` should unblock both files.
 - **Found by:** Phase 0 download step.
 - **Evidence:** `curl https://huggingface.co/api/datasets/hexuan21/MemoryTax-Res-Qwen3-5-4B` -> `CONNECT tunnel failed, response 403`. The agent proxy logs `connect_rejected` for `huggingface.co:443`. GitHub and PyPI were reachable.
 - **Tried:**
