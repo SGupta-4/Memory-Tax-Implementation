@@ -114,3 +114,20 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
 - **What didn't:** Nothing else was tried.
 - **Verified by:** After `us.aws.cdn.hf.co` was allowed, `hf download` fetched `longmemeval_s` (278,025,796 bytes) and `memories.tar.gz` (104,803,804 bytes). Both sha256 values match the Hub's LFS records.
 - **Follow-up:** A new environment needs `huggingface.co` and `us.aws.cdn.hf.co` allowed; the Xet and LFS hosts above were allowed too. Hugging Face may send other regions to another `*.cdn.hf.co` host.
+
+## F-002: Phase 1 harness on CPU
+
+- **Status:** in progress
+- **Scoped by:** `IMPLEMENTATION_PLAN.md`, Phase 1: build the harness on CPU against a fake server before any Kaggle time.
+- **Evidence:** Gate G1 (`configs/gates.yaml`, thresholds set on 2026-11-02, before any run).
+- **Tried:**
+  1. Chunker from Appendix A.2 as written -> 0/60 histories matched the authors'.
+  2. Rules found by diffing against the authors' chunks (D-028) -> 500/500.
+- **Verified by:** `uv run memtax check-chunks --against authors`:
+
+  ```text
+  chunks match: 500/500 histories (100.0%)
+  G1 chunks PASS (need 99%)
+  ```
+
+- **Follow-up:** the model client and cache, the fake server, retrieval, RAG, answer, judge, pipeline, and `kaggle_serve.sh`.

@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from memtax import data, metrics
+from memtax import chunking, data, metrics
 from memtax.schema import Question, Verdict
 
 # PAPER: the authors' judge for all published verdicts (vendor common/judge/README.md).
@@ -33,6 +33,12 @@ G0_ACCURACY = {"simplemem": 60.2, "rag1": 70.2, "rag2": 72.2}
 G0_TAX, G0_BENEFIT, G0_TOLERANCE, G0_N = 18.2, 8.2, 0.1, 500
 
 SMOKE_KEYS = {"questions", "system", "reference", "judge_id"}
+
+# FLOW: MemoryTax-Res-Other at 00968a85, preprocess_chunks/main_exp_bench/longmemeval_s/buffer.
+AUTHOR_CHUNKS = (
+    "res_other/preprocess_chunks/main_exp_bench/longmemeval_s/buffer/longmemeval_s_corpus.json"
+)
+GATES = Path("configs/gates.yaml")
 
 
 def _pct(count: int, n: int) -> float:
@@ -106,6 +112,25 @@ def smoke(config_path: Path) -> int:
     return 0
 
 
+def check_chunks(data_dir: Path) -> int:
+    questions = data.load_questions(data_dir / AUDIT_QUESTIONS)
+    theirs = data.load_author_chunks(data_dir / AUTHOR_CHUNKS)
+    mismatched = []
+    for q in questions:
+        mine = [(c.doc_id, c.text, c.turn_ids) for c in chunking.chunk_history(q)]
+        if mine != theirs.get(q.question_id):
+            mismatched.append(q.question_id)
+    n = len(questions)
+    share = (n - len(mismatched)) / n
+    # PAPER: G1 threshold, preregistered in configs/gates.yaml.
+    minimum = float(yaml.safe_load(GATES.read_text(encoding="utf-8"))["g1"]["chunk_match_min"])
+    print(f"chunks match: {n - len(mismatched)}/{n} histories ({100 * share:.1f}%)")
+    if mismatched:
+        print(f"first mismatches: {mismatched[:5]}")
+    print(f"G1 chunks {'PASS' if share >= minimum else 'FAIL'} (need {100 * minimum:.0f}%)")
+    return 0 if share >= minimum else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="memtax")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -114,10 +139,15 @@ def main(argv: list[str] | None = None) -> int:
     p_audit.add_argument("--data-dir", type=Path, default=Path("data"))
     p_smoke = sub.add_parser("smoke", help="fixture run with no network or GPU")
     p_smoke.add_argument("--config", type=Path, required=True)
+    p_chunks = sub.add_parser("check-chunks", help="G1: compare chunks with the authors'")
+    p_chunks.add_argument("--against", required=True, choices=["authors"])
+    p_chunks.add_argument("--data-dir", type=Path, default=Path("data"))
     args = parser.parse_args(argv)
 
     if args.command == "audit":
         return audit(args.data_dir)
+    if args.command == "check-chunks":
+        return check_chunks(args.data_dir)
     return smoke(args.config)
 
 

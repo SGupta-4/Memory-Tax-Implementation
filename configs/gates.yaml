@@ -1,0 +1,11 @@
+# Preregistered gate thresholds (IMPLEMENTATION_PLAN.md section 6). Set before any Phase 1 run.
+# Changing a value after seeing results needs a DECISION.md entry and human approval (CLAUDE.md).
+g1:
+  chunk_match_min: 0.99        # share of histories whose chunks equal the authors' buffer chunks
+  judge_agreement_min: 0.90    # own judge vs authors' verdicts, on the authors' answers
+  rag1_target: 70.2            # authors' one-round RAG accuracy, Qwen3.5-4B
+  rag1_tolerance: 3.0          # own one-round RAG must be within +-3 points
+  rag1_agreement_min: 0.85     # per-question verdict agreement, own RAG vs authors' RAG
+  failure_rate_max: 0.01       # unresolved failed calls plus unparsable verdicts, per run
+  repeat_stability_min: 0.95   # share of verdicts unchanged in the 20-question uncached repeat
+  no_think: true               # no "<think>" text in any answer

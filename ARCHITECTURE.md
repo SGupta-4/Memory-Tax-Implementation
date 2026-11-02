@@ -48,7 +48,7 @@ flowchart TD
 
 ## Modules
 
-Built in Phase 0: `schema.py` (`Question`, `Turn`, `Verdict` only), `data.py` (question and verdict loaders), `metrics.py`, and `cli.py` (`audit`, `smoke`). Everything else in this table is planned ([D-024](DECISION.md)).
+Built in Phase 0: `schema.py` (`Question`, `Turn`, `Verdict` only), `data.py` (question, verdict, and authors' chunk loaders), `metrics.py`, and `cli.py` (`audit`, `smoke`, `check-chunks`). Built in Phase 1 so far: `chunking.py`. Everything else in this table is planned ([D-024](DECISION.md)).
 
 | Module | Responsibility | Must not |
 | --- | --- | --- |

@@ -8,15 +8,15 @@ Keep this current. Clear it when the change lands.
 
 | Field | Value |
 | --- | --- |
-| Task | None; Phase 0 landed (F-001 verified). Phase 1 not started |
-| Bug or feature | None |
-| Files on the path | None |
-| Entry point affected | None |
-| Downstream that could break | None |
+| Task | Phase 1: CPU harness (chunking landed; client, retrieval, pipeline next) |
+| Bug or feature | F-002 in `BUGS.md` |
+| Files on the path | `src/memtax/chunking.py`, `src/memtax/data.py`, `src/memtax/cli.py` |
+| Entry point affected | `memtax check-chunks --against authors` |
+| Downstream that could break | Embedding reuse: the authors' `.npz` rows align with chunk order |
 
 ## Entry points
 
-Built so far: `memtax audit`, `memtax smoke`, and `python scripts/check_repo.py`. The rest are planned.
+Built so far: `memtax audit`, `memtax smoke`, `memtax check-chunks --against authors`, and `python scripts/check_repo.py`. The rest are planned.
 
 | Command | Purpose | GPU? |
 | --- | --- | --- |
@@ -58,6 +58,7 @@ data/authors/res_simplemem_longmemeval_s_4b/judge_res/judge.jsonl               
 data/authors/res_simplemem_longmemeval_s_4b/{qa_res,cost}/, memories.tar.gz            answers, costs, stores
 data/authors/naive_baselines/res_rag_hybrid_{1rd,2rd}_longmemeval_s_4b/judge_res/judge.jsonl
 data/stores/memories/<question_id>/                                                     extracted stores (D-027)
+data/res_other/preprocess_chunks/main_exp_bench/longmemeval_s/buffer/longmemeval_s_corpus.json   authors' chunks (D-028)
 ```
 
 Extract the stores with `tarfile.open(path).extractall("data/stores", filter="data")`. Large files need `us.aws.cdn.hf.co` allowed (B-004).

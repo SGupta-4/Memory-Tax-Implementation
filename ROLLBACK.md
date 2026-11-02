@@ -54,3 +54,10 @@ Risky means changing `metrics.py`, `schema.py`, or the cache key, vendored promp
 - Re-check: exact commands from DONE.md
 - Outcome: not needed | used, with result
 ```
+
+### 2026-11-02: Phase 1 harness (schema records, cache key, pipeline)
+- Revert to: commit `52a81fa` (Phase 0 G0 pass; the human-applied `phase-0-pass` tag points here)
+- Files to restore: `src/memtax/`, `tests/`, `configs/`, `scripts/kaggle_serve.sh`
+- Data to restore: none yet; no runs or cache exist before this change
+- Re-check: universal gate; `memtax audit --bench longmemeval_s` still prints `G0 PASS`
+- Outcome: not needed

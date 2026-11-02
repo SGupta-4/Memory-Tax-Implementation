@@ -242,3 +242,19 @@ Seeded entries were decided while planning on 2026-11-02.
 - **Alternatives:** None; this records what the files are.
 - **Tradeoff accepted:** The meaning of `n` is inferred, not documented; Phase 3 must confirm it before relying on it.
 - **Revisit if:** The 32 `n` mismatches or the 7 partial maps matter for Phase 3 accessibility.
+
+## D-028: Chunking rules as matched against the authors' buffer chunks
+
+- **Date, phase, status:** 2026-11-02, Phase 1, accepted
+- **Decision:** `chunking.py` implements Appendix A.2 with the details the paper leaves out, each found by matching the authors' `buffer` chunks (`MemoryTax-Res-Other` at `00968a85`):
+  - The header is `(session date-time: <date>)\n`. Turns are rendered as `[role: <role>]: <text>` and joined by `\n`.
+  - Each turn's text is stripped, and empty turns are skipped.
+  - Sizes count the joined role lines, not the header.
+  - A line of 1,024 characters or more stands alone. Short lines merge while the joined length stays at or under 1,024.
+  - On overflow, the last turn carries over only when the flushed chunk merged more than one turn. If the carried turn still can't fit with the next one, it is emitted alone.
+  - Lines over 8,192 characters split into slices `[s, s+8192)` every 7,168 characters, each stripped, with only the first keeping the role prefix.
+  - Doc ids are `<question_id>|d<n>`, counted in history order.
+- **Why:** `memtax check-chunks --against authors` gives 500/500 identical histories (text, turn ids, and doc ids), so the authors' embeddings line up row for row (D-005).
+- **Alternatives:** A literal reading of the paper (sizes counting text only, overlap after every flush, `> 1024` for long turns) matched 0 of 60 histories.
+- **Tradeoff accepted:** Some rules, like the overlap quirk, reproduce their implementation rather than an obviously better design.
+- **Revisit if:** Never for the replication; the medication benchmark reuses the same rules.

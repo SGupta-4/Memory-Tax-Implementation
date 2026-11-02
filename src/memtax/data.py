@@ -157,3 +157,31 @@ def _parse_verdict(value: Any, file: Path, qid: str) -> int:
         return 1 if value.strip().upper() == "CORRECT" else 0
     # WHY: an unparsable verdict needs a recorded policy (DECISION.md), not a silent default.
     raise ValueError(f"{file}: question {qid}: verdict {value!r} is not 0/1 or CORRECT/WRONG")
+
+
+AuthorChunk = tuple[str, str, tuple[str, ...]]  # (doc_id, text, source_turn_ids)
+
+
+def load_author_chunks(path: Path) -> dict[str, list[AuthorChunk]]:
+    """Read the authors' `{bench}_corpus.json`: one list of chunk objects per history."""
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        raise ValueError(f"{path}: expected a JSON list of histories")
+    out: dict[str, list[AuthorChunk]] = {}
+    for history in raw:
+        if not isinstance(history, list) or not history:
+            raise ValueError(f"{path}: a history is not a non-empty list of chunks")
+        chunks = []
+        for ch in history:
+            if not (
+                isinstance(ch, dict)
+                and all(isinstance(ch.get(k), str) for k in ("doc_id", "text", "question_id"))
+                and isinstance(ch.get("source_turn_ids"), list)
+            ):
+                raise ValueError(f"{path}: chunk lacks doc_id, text, question_id or turn ids")
+            chunks.append((ch["doc_id"], ch["text"], tuple(str(t) for t in ch["source_turn_ids"])))
+        qid = history[0]["question_id"]
+        if qid in out:
+            raise ValueError(f"{path}: duplicate history {qid}")
+        out[qid] = chunks
+    return out
