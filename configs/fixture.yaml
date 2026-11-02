@@ -1,0 +1,6 @@
+# Smoke config: 4 invented questions, one per pairing outcome (both right, benefit, tax,
+# both wrong). Runs with no network or GPU. Paths are relative to the repo root.
+questions: tests/fixtures/longmemeval_fixture.json
+system: tests/fixtures/verdicts_system.jsonl
+reference: tests/fixtures/verdicts_reference.jsonl
+judge_id: fixture-judge

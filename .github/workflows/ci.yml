@@ -1,0 +1,22 @@
+# Universal gate from DONE.md, CPU only. Never needs data, secrets, or a GPU.
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # check_repo.py inspects every commit in the pushed range
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --locked --python 3.11
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy src
+      - run: uv run pytest -q -m "not gpu"
+      - run: uv run python scripts/check_repo.py
+        env:
+          CHECK_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+      - run: uv run memtax smoke --config configs/fixture.yaml

@@ -1,0 +1,19 @@
+# Local hooks only, so nothing is fetched from third-party hook repos (D-022).
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check and format
+        entry: bash -c 'uv run ruff check . && uv run ruff format --check .'
+        language: system
+        pass_filenames: false
+      - id: mypy
+        name: mypy src
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false
+      - id: check-repo
+        name: check_repo.py
+        entry: uv run python scripts/check_repo.py
+        language: system
+        pass_filenames: false

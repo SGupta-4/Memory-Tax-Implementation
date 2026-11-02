@@ -1,0 +1,48 @@
+[project]
+name = "memtax"
+version = "0.0.1"
+description = "Replication of Memory Tax (He et al., 2026) on LongMemEval-s"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+memtax = "memtax.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "types-pyyaml>=6.0",
+    "pre-commit>=3.7",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.12"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# WHY: vendor/ is the authors' code copied verbatim (D-006); reformatting it would break its hashes.
+extend-exclude = ["vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["gpu: needs a GPU model server; excluded by the universal gate"]
+
+[[tool.mypy.overrides]]
+# WHY: scipy ships no type stubs; one override beats a new dependency (D-022).
+module = ["scipy.*"]
+ignore_missing_imports = true

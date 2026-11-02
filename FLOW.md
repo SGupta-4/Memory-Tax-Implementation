@@ -8,13 +8,15 @@ Keep this current. Clear it when the change lands.
 
 | Field | Value |
 | --- | --- |
-| Task | Not started: Phase 0 repo setup |
+| Task | Phase 0: G0 audit waiting on Hugging Face access (B-004) |
 | Bug or feature | F-001 in `BUGS.md` |
-| Files on the path | None yet |
-| Entry point affected | None yet |
-| Downstream that could break | None yet |
+| Files on the path | `src/memtax/data.py`, `src/memtax/cli.py` |
+| Entry point affected | `memtax audit --bench longmemeval_s` |
+| Downstream that could break | `tests/test_metrics.py` real-data test; G0 output in `BUGS.md` F-001 |
 
 ## Entry points
+
+Built so far: `memtax audit`, `memtax smoke`, and `python scripts/check_repo.py`. The rest are planned.
 
 | Command | Purpose | GPU? |
 | --- | --- | --- |
@@ -28,6 +30,40 @@ Keep this current. Clear it when the change lands.
 | `make reproduce` | Rebuild tables from published results | No |
 | `python scripts/check_repo.py` | Check control documents and docstrings | No |
 | `python -m extension.medmem.generate --seed 42` | Generate medication data | Only for paraphrase |
+
+## Phase 0 audit path
+
+```text
+cli.main(["audit", "--bench", "longmemeval_s"])
+└─ cli.audit(data_dir)
+   ├─ data.load_questions(longmemeval/longmemeval_s.json)    validates fields; ids unique
+   ├─ data.load_verdicts(folder, AUTHORS_JUDGE_ID)          for simplemem, rag1, rag2 (D-023)
+   ├─ cli._check_ids(...)                                   each run's ids == dataset ids (B-001)
+   ├─ metrics.pair(system, rag1)                            same judge_id, same question set
+   ├─ metrics.paired_summary(...)                           counts; raises if the identity fails
+   ├─ metrics.bootstrap_ci(...), metrics.mcnemar_exact(...)
+   └─ print, then "G0 PASS" or "G0 FAIL: ..." (D-025)
+```
+
+`memtax smoke --config configs/fixture.yaml` runs the same load, pair, and summary steps on the 4-question fixture in `tests/fixtures/`.
+
+## Phase 0 data layout
+
+`memtax audit` reads these paths under `--data-dir` (default `data/`, not committed). The authors' folder paths come from the plan and haven't been checked against the Hub yet (B-004).
+
+```text
+data/longmemeval/longmemeval_s.json
+data/authors/res_simplemem_longmemeval_s_4b/
+data/authors/naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b/
+data/authors/naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b/
+```
+
+Download with the `hf` CLI. The dataset file is named `longmemeval_s` on the Hub, with no extension:
+
+```bash
+hf download xiaowu0162/longmemeval longmemeval_s --repo-type dataset --revision 2ec2a557f339b6c0369619b1ed5793734cc87533 --local-dir data/longmemeval && mv data/longmemeval/longmemeval_s data/longmemeval/longmemeval_s.json
+hf download hexuan21/MemoryTax-Res-Qwen3-5-4B --repo-type dataset --include "res_simplemem_longmemeval_s_4b/*" "naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b/*" "naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b/*" --local-dir data/authors
+```
 
 ## Main path: one stage
 

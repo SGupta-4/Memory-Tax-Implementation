@@ -48,6 +48,8 @@ flowchart TD
 
 ## Modules
 
+Built in Phase 0: `schema.py` (`Question`, `Turn`, `Verdict` only), `data.py` (question and verdict loaders), `metrics.py`, and `cli.py` (`audit`, `smoke`). Everything else in this table is planned ([D-024](DECISION.md)).
+
 | Module | Responsibility | Must not |
 | --- | --- | --- |
 | `schema.py` | Shared records: `Question`, `Retrieved`, `Answer`, `Verdict`, `Manifest` | Import other project modules |
@@ -72,10 +74,10 @@ flowchart TD
 ```text
 memory-tax-replication/
 ├── CLAUDE.md, IMPLEMENTATION_PLAN.md, and the other project documents
-├── pyproject.toml, uv.lock, Makefile, THIRD_PARTY.md
+├── pyproject.toml, uv.lock, .pre-commit-config.yaml; Makefile and THIRD_PARTY.md in Phase 5
 ├── .github/workflows/ci.yml
 ├── configs/          base, fixture, one per experiment; serve.lock pins server versions
-├── vendor/memorytax/ authors' prompts at 179e6a7, with licence and hashes
+├── vendor/memorytax/ authors' prompts at 179e6a7, with LICENSE and HASHES.sha256
 ├── src/memtax/       the modules below
 ├── extension/medmem/ medication benchmark
 ├── scripts/          plan_numbers.py, check_repo.py, kaggle_serve.sh

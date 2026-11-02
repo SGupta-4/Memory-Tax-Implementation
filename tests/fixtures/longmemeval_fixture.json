@@ -1,0 +1,59 @@
+[
+  {
+    "question_id": "fx_ssu_001",
+    "question_type": "single-session-user",
+    "question": "What breed is my dog?",
+    "answer": "corgi",
+    "question_date": "2023/08/10 (Thu) 10:00",
+    "haystack_session_ids": ["s1", "s2"],
+    "haystack_dates": ["2023/05/20 (Sat) 09:00", "2023/07/02 (Sun) 18:30"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "I adopted a corgi named Biscuit.", "has_answer": true},
+       {"role": "assistant", "content": "Congratulations on Biscuit!"}],
+      [{"role": "user", "content": "Any tips for a rainy weekend?"},
+       {"role": "assistant", "content": "Try a board game day."}]
+    ],
+    "answer_session_ids": ["s1"]
+  },
+  {
+    "question_id": "fx_ms_002",
+    "question_type": "multi-session",
+    "question": "How many kilograms did Biscuit gain between the two vet visits?",
+    "answer": 2,
+    "question_date": "2023/09/01 (Fri) 12:00",
+    "haystack_session_ids": ["s3", "s4"],
+    "haystack_dates": ["2023/06/01 (Thu) 08:00", "2023/08/15 (Tue) 08:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "Biscuit weighed 9 kg at the vet.", "has_answer": true}],
+      [{"role": "user", "content": "Biscuit is 11 kg now.", "has_answer": true}]
+    ],
+    "answer_session_ids": ["s3", "s4"]
+  },
+  {
+    "question_id": "fx_ku_003",
+    "question_type": "knowledge-update",
+    "question": "Where do I work now?",
+    "answer": "a bakery",
+    "question_date": "2023/10/01 (Sun) 09:00",
+    "haystack_session_ids": ["s5", "s6"],
+    "haystack_dates": ["2023/01/10 (Tue) 09:00", "2023/09/10 (Sun) 09:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "I work at a bookshop.", "has_answer": true}],
+      [{"role": "user", "content": "I just started at a bakery.", "has_answer": true}]
+    ],
+    "answer_session_ids": ["s5", "s6"]
+  },
+  {
+    "question_id": "fx_ssu_004_abs",
+    "question_type": "single-session-user",
+    "question": "What is my cat's name?",
+    "answer": "The information is not available; you never mentioned a cat.",
+    "question_date": "2023/10/02 (Mon) 09:00",
+    "haystack_session_ids": ["s7"],
+    "haystack_dates": ["2023/03/03 (Fri) 09:00"],
+    "haystack_sessions": [
+      [{"role": "user", "content": "I prefer tea over coffee."}]
+    ],
+    "answer_session_ids": []
+  }
+]

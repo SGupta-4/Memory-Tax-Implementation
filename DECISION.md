@@ -175,3 +175,48 @@ Seeded entries were decided while planning on 2026-11-02.
 - **Alternatives:** Correcting for judge differences would add assumptions and make results harder to defend.
 - **Tradeoff accepted:** Comparing with the authors' verdicts needs a separate audit command and is reported separately.
 - **Revisit if:** Never for confirmatory results.
+
+## D-021: Python toolchain and build backend
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted
+- **Decision:** Python 3.11 managed by `uv`, built with `uv_build`. Runtime dependencies: `numpy`, `scipy` (exact binomial test), and `pyyaml` (configs, read with `safe_load` only). Dev group: `pytest`, `ruff`, `mypy` in strict mode, and `types-pyyaml` for mypy.
+- **Why:** This is the stack `AGENT_PROMPT.md` allows. `uv_build` is uv's own backend, so there's no second build tool to learn, and it supports the `src/` layout with no configuration.
+- **Alternatives:** `hatchling` or `setuptools` work equally well but add a separate tool.
+- **Tradeoff accepted:** `uv_build` is younger than `hatchling`; the version is capped in `pyproject.toml`.
+- **Revisit if:** A build needs features `uv_build` lacks, such as compiled extensions.
+
+## D-022: Pre-commit with local hooks; no scipy stubs
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted
+- **Decision:** Add `pre-commit` to the dev group, with only `repo: local` hooks that call the universal gate's own commands through `uv run`. For mypy, mark `scipy.*` as untyped with an override instead of adding `scipy-stubs`.
+- **Why:** Phase 0 asks for pre-commit. Local hooks fetch nothing from third-party hook repos and can't drift from CI. Only one scipy function is used, and its result is wrapped in `float()`, so stubs would add a dependency for one call.
+- **Alternatives:** Upstream hook repos (`ruff-pre-commit`, `mirrors-mypy`) pin their own tool versions, which can disagree with `uv.lock`.
+- **Tradeoff accepted:** scipy calls aren't type-checked.
+- **Revisit if:** `metrics.py` uses more of scipy.
+
+## D-023: Verdict loader accepts fixed field names and rejects unparsable verdicts
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted; recheck when the authors' files are inspected (B-004)
+- **Decision:** `data.load_verdicts` reads every `.json` and `.jsonl` under a folder and takes any object with a `question_id` and one of `verdict`, `judge_verdict`, `label`, `judge_label`, `correct`, `is_correct`, first match winning. Values must be 0/1, a boolean, or `CORRECT`/`WRONG`. A null or other value, a second verdict for the same question, or no verdicts at all raises an error naming the file, question, and keys seen.
+- **Why:** huggingface.co was blocked in the session that wrote the loader, so the authors' layout couldn't be inspected. Failing loudly on the first real run is safer than guessing silently. The vendored `parse_verdict` returns `None` for unparsable replies and says they're "counted separately", so the policy for them is a research decision, not a loader default.
+- **Alternatives:** Treating null as wrong would make G0 pass or fail on an unrecorded assumption.
+- **Tradeoff accepted:** The first real run may need a one-line loader change, recorded here.
+- **Revisit if:** The authors' files use another field, or contain null verdicts. Then add a decision on how the paper counted them.
+
+## D-024: Phase 0 builds only what the audit uses
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted
+- **Decision:** `schema.py` defines only `Question`, `Turn`, and `Verdict`. `Retrieved`, `Answer`, `Manifest`, and the `Benchmark` protocol arrive in Phase 1, with the stages that use them. Holm correction and patient-level bootstrap arrive in Phases 3 and 4.
+- **Why:** Phase 0 is an audit of verdicts. Unused types would be designed before their first caller exists.
+- **Alternatives:** Writing the full schema now matches the module table, but guesses fields Phase 1 will decide.
+- **Tradeoff accepted:** `ARCHITECTURE.md` lists modules that are partly built; it now says so.
+- **Revisit if:** Never; Phase 1 adds them.
+
+## D-025: How the audit applies G0
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted
+- **Decision:** Accuracies must equal the published one-decimal values (60.2, 70.2, 72.2) after rounding. Tax and benefit may differ by up to 0.1 points. n must be 500. Question ids in every run must equal the dataset's 500 ids. The audit prints `G0 PASS` or `G0 FAIL: <reasons>` and exits 1 on failure.
+- **Why:** The plan gives a tolerance only for tax and benefit. With n=500, a difference of one question moves accuracy by 0.2 points, so exact one-decimal agreement means the same correct counts. Checking ids is how B-001 is verified.
+- **Alternatives:** A shared ±0.1 on accuracies would allow the same thing, as 0.1 is below one question; the exact form is clearer.
+- **Tradeoff accepted:** None; this restates the preregistered gate in code.
+- **Revisit if:** Never without a human; gate thresholds are preregistered.
