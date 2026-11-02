@@ -8,7 +8,7 @@ Keep this current. Clear it when the change lands.
 
 | Field | Value |
 | --- | --- |
-| Task | Phase 0: G0 audit waiting on Hugging Face access (B-004) |
+| Task | Phase 0: G0 audit waiting on the dataset file; large-file hosts blocked (B-004) |
 | Bug or feature | F-001 in `BUGS.md` |
 | Files on the path | `src/memtax/data.py`, `src/memtax/cli.py` |
 | Entry point affected | `memtax audit --bench longmemeval_s` |
@@ -49,20 +49,20 @@ cli.main(["audit", "--bench", "longmemeval_s"])
 
 ## Phase 0 data layout
 
-`memtax audit` reads these paths under `--data-dir` (default `data/`, not committed). The authors' folder paths come from the plan and haven't been checked against the Hub yet (B-004).
+`memtax audit` reads these paths under `--data-dir` (default `data/`, not committed). The authors' paths were confirmed on the Hub at revision `987bfe5f` ([D-026](DECISION.md)).
 
 ```text
 data/longmemeval/longmemeval_s.json
-data/authors/res_simplemem_longmemeval_s_4b/
-data/authors/naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b/
-data/authors/naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b/
+data/authors/res_simplemem_longmemeval_s_4b/judge_res/judge.jsonl                     verdicts read by audit
+data/authors/res_simplemem_longmemeval_s_4b/{qa_res,cost}/, memories.tar.gz            answers, costs, stores
+data/authors/naive_baselines/res_rag_hybrid_{1rd,2rd}_longmemeval_s_4b/judge_res/judge.jsonl
 ```
 
 Download with the `hf` CLI. The dataset file is named `longmemeval_s` on the Hub, with no extension:
 
 ```bash
 hf download xiaowu0162/longmemeval longmemeval_s --repo-type dataset --revision 2ec2a557f339b6c0369619b1ed5793734cc87533 --local-dir data/longmemeval && mv data/longmemeval/longmemeval_s data/longmemeval/longmemeval_s.json
-hf download hexuan21/MemoryTax-Res-Qwen3-5-4B --repo-type dataset --include "res_simplemem_longmemeval_s_4b/*" "naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b/*" "naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b/*" --local-dir data/authors
+hf download hexuan21/MemoryTax-Res-Qwen3-5-4B --repo-type dataset --revision 987bfe5fb8317900abbad3a3260672299db1229c --include "res_simplemem_longmemeval_s_4b/*" "naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b/*" "naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b/*" --local-dir data/authors
 ```
 
 ## Main path: one stage

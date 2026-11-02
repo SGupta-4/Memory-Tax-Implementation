@@ -220,3 +220,12 @@ Seeded entries were decided while planning on 2026-11-02.
 - **Alternatives:** A shared ±0.1 on accuracies would allow the same thing, as 0.1 is below one question; the exact form is clearer.
 - **Tradeoff accepted:** None; this restates the preregistered gate in code.
 - **Revisit if:** Never without a human; gate thresholds are preregistered.
+
+## D-026: Authors' verdict layout confirmed; audit reads judge.jsonl only
+
+- **Date, phase, status:** 2026-11-02, Phase 0, accepted; narrows D-023
+- **Decision:** `memtax audit` reads `<run>/judge_res/judge.jsonl` instead of walking each run folder. Authors' results are pinned to `MemoryTax-Res-Qwen3-5-4B` revision `987bfe5fb8317900abbad3a3260672299db1229c`.
+- **Why:** The repo README and the files show one JSON line per question: `question_id`, `category`, `verdict` (0/1), `raw`, `gold_used`, `prompt`, and `judge_prompt_version` (`judge/unified-v1` everywhere). `verdict` is D-023's first key, and none of the 1,500 verdicts is null, so no policy for unparsable verdicts is needed. `qa_res/` also carries `question_id`, so walking it adds risk and nothing else.
+- **Alternatives:** Keep walking whole folders. That works today, but would silently pick up any future file with a matching key.
+- **Tradeoff accepted:** A layout change in the authors' repo needs a path change here; the revision pin prevents surprise changes.
+- **Revisit if:** The pinned revision changes.

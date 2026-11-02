@@ -34,11 +34,12 @@ for name, (a, b) in SCENARIOS.items():
     print(name)
     print("   " + "  ".join(f"n={n}:{mcnemar_power(n, a, b):.2f}" for n in (100, 300, 400, 500)))
 
-# Sampled from the authors' cost files for SimpleMem, Qwen3.5-4B, LongMemEval-s (9 histories).
-COMPLETION = [274764, 271131, 237227, 218985, 274959, 251580, 225397, 243348, 259331]
-PROMPT = [212908, 228143, 209079, 202254, 229285, 209291, 207479, 217205, 225492]
-PARALLEL_S = [1254.06, 1207.35, 1223.74, 614.09, 789.01, 1046.94, 629.66, 676.98, 1492.96]
-SERIAL_S = [5016.24, 4829.4, 4894.96, 2456.36, 3156.04, 4187.76, 2518.64, 2707.92, 5971.84]
+# Means over all 500 authors' cost files for SimpleMem, Qwen3.5-4B, LongMemEval-s
+# (construction, MemoryTax-Res-Qwen3-5-4B at 987bfe5f; B-003). One-element lists keep mean() below.
+COMPLETION = [242785.31]
+PROMPT = [213164.99]
+PARALLEL_S = [843.48]
+SERIAL_S = [3373.91]
 print(
     f"\nBuild per history: {mean(COMPLETION):,.0f} completion, {mean(PROMPT):,.0f} prompt tokens,"
     f" {mean(PARALLEL_S):.0f} s on authors' GPU (parallel), {mean(SERIAL_S):.0f} s serial"

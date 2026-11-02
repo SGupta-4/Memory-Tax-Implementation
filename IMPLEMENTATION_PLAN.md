@@ -6,7 +6,7 @@
 
 Replicate "Memory Tax" (He et al., 2026, [arXiv 2610.34073](https://arxiv.org/abs/2610.34073)) on all 500 LongMemEval-s questions, test its fix on a model the paper's fix table doesn't cover, and add a new medication-history benchmark.
 
-The plan runs free on Kaggle. It needs about 24 GPU hours and about 30 focused days.
+The plan runs free on Kaggle. It needs about 22 GPU hours and about 30 focused days.
 
 The key design choice is to reuse what the authors released and spend GPU time only where it creates new evidence.
 
@@ -82,7 +82,7 @@ H2 can reliably detect a gain near 6 points, not 3. The paper's gain on Qwen3.6-
 | Evidence labels | Turn level `has_answer`; session level `answer_session_ids` |
 | Authors' code | `hexuan21/MemoryTax` at `179e6a7`, MIT |
 | Dev subset | `common/bench/subset_ids/longmemeval_s_sub100.json` |
-| Authors' results | [`MemoryTax-Res-Qwen3-5-4B`](https://huggingface.co/datasets/hexuan21/MemoryTax-Res-Qwen3-5-4B); download only the folders in Phase 0, as the repo is 49.1 GB |
+| Authors' results | [`MemoryTax-Res-Qwen3-5-4B`](https://huggingface.co/datasets/hexuan21/MemoryTax-Res-Qwen3-5-4B); revision `987bfe5fb8317900abbad3a3260672299db1229c`; download only the folders in Phase 0, as the repo is 49.1 GB |
 | Oracle results and chunks | [`MemoryTax-Res-Other`](https://huggingface.co/datasets/hexuan21/MemoryTax-Res-Other): `res_with_oracle_mem`, `preprocess_chunks`, `preprocess_embeddings` |
 | SimpleMem | [`aiming-lab/SimpleMem`](https://github.com/aiming-lab/SimpleMem) at `db80b6a7c591e0ea730a058e9f5fc4eb06572299`, not `main` |
 | SimpleMem settings | Window 10; retrieval k: semantic 25, keyword 5, structured 5 |
@@ -114,12 +114,12 @@ H2 can reliably detect a gain near 6 points, not 3. The paper's gain on Qwen3.6-
 | RAG two rounds, 500 | 1.3 |
 | SimpleMem replay, 500 | 1.2 |
 | Source augmentation, 500 | 1.2 |
-| Own SimpleMem builds, 10 | 8.3 |
-| Medication build, 30 patients | 3.9 |
+| Own SimpleMem builds, 10 | 7.0 |
+| Medication build, 30 patients | 3.3 |
 | Medication answering, 360 questions × 3 systems | 2.7 |
 | Own index, as a contingency if embeddings can't be reused | 1.7 |
 | Judge and smoke runs | 3.0 |
-| **Total** | **About 24** |
+| **Total** | **About 22** |
 
 Kaggle's weekly quota is [commonly reported at about 30 hours](https://gpuperhour.com/blog/free-cloud-gpus-and-credits), but Kaggle doesn't publish a number. Check your account before relying on it.
 

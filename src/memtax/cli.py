@@ -20,10 +20,11 @@ from memtax.schema import Question, Verdict
 AUTHORS_JUDGE_ID = "authors:Qwen3.6-27B:judge/unified-v1"
 
 # FLOW: paths under --data-dir mirror the HF repo MemoryTax-Res-Qwen3-5-4B (FLOW.md).
+# WHY: read judge.jsonl only; qa_res/ also carries question_id, so walking it invites mixups.
 AUDIT_RUNS = {
-    "simplemem": "authors/res_simplemem_longmemeval_s_4b",
-    "rag1": "authors/naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b",
-    "rag2": "authors/naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b",
+    "simplemem": "authors/res_simplemem_longmemeval_s_4b/judge_res/judge.jsonl",
+    "rag1": "authors/naive_baselines/res_rag_hybrid_1rd_longmemeval_s_4b/judge_res/judge.jsonl",
+    "rag2": "authors/naive_baselines/res_rag_hybrid_2rd_longmemeval_s_4b/judge_res/judge.jsonl",
 }
 AUDIT_QUESTIONS = "longmemeval/longmemeval_s.json"
 

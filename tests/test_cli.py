@@ -45,12 +45,12 @@ def _write_audit_layout(root: Path, rag2_correct: int) -> None:
         "rag2": [1] * rag2_correct + [0] * (500 - rag2_correct),
     }
     for name, values in verdicts.items():
-        folder = root / cli.AUDIT_RUNS[name]
-        folder.mkdir(parents=True)
+        path = root / cli.AUDIT_RUNS[name]
+        path.parent.mkdir(parents=True)
         lines = [
             json.dumps({"question_id": q, "verdict": v}) for q, v in zip(ids, values, strict=True)
         ]
-        (folder / "verdicts.jsonl").write_text("\n".join(lines))
+        path.write_text("\n".join(lines))
 
 
 def test_audit_g0_pass(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

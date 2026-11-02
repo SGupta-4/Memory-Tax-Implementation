@@ -43,7 +43,7 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
 
 ## B-003: Plan's SimpleMem build budget was far too low
 
-- **Status:** verified at plan level; re-measure in Phase 2
+- **Status:** verified over all 500 cost files on 2026-11-02; re-measure own builds in Phase 2
 - **Found by:** Reading authors' cost files.
 - **Evidence:** 9 sampled histories average 250,747 completion and 215,682 prompt tokens, and 993 seconds on the authors' GPUs. The earlier formula divided total tokens by an assumed 1,500 tokens per second, which gave about 7 hours for 100 histories. At the sampled time, 100 histories take 27.6 hours before any T4 slowdown.
 - **Tried:**
@@ -52,11 +52,19 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
 - **What didn't:** Scaling down builds alone.
 - **Verified by:** Running `python scripts/plan_numbers.py`.
 - **Follow-up:** The sample of 9 isn't random: I picked them from the start of the alphabetical file list. Recalculate over all 500 in Phase 0.
-- **2026-11-02:** Recalculation over all 500 is blocked by B-004, so `scripts/plan_numbers.py` still uses the 9-history sample. Rerun it once the cost files are downloaded.
+- **2026-11-02, over all 500:** construction averages 242,785 completion and 213,165 prompt tokens, and 843 s parallel (median 868, range 287 to 1,687) on the authors' GPUs. The 9-history sample overstated time by about 15%. 100 builds take 23.4 h, not 27.6 h; 500 take 117 h, not 138 h. At the assumed 3x slowdown, 10 own builds take 7.0 T4-hours, not 8.3, and the plan total falls from about 24 to about 22 GPU hours. D-004 still holds; no gate changed. `scripts/plan_numbers.py` and plan section 5 are updated.
 
 ## F-001: Phase 0 audit
 
-- **Status:** in progress; the code is built and tested, and G0 is blocked by B-004
+- **Status:** in progress. The authors' verdicts reproduce every G0 number, but the G0 command can't run until the dataset file downloads (B-004)
+- **2026-11-02 update:** huggingface.co became reachable, but its large-file hosts are still denied. The authors' `judge_res/`, `qa_res/`, and `cost/` folders downloaded at revision `987bfe5f` (24 MB). `longmemeval_s` (278 MB) and `memories.tar.gz` (105 MB) did not. The verdict layout is recorded in D-026. On the real verdicts, through `memtax.metrics`:
+
+  ```text
+  simplemem n 500 acc 60.2 ref 70.2 benefit 41 8.2 tax 91 18.2 net CI (-14.4, -5.6) p=1.61e-05
+  rag2      n 500 acc 72.2 ref 70.2 benefit 32 6.4 tax 22 4.4  net CI (-0.8, 4.8)  p=0.22
+  ```
+
+  That matches G0's targets exactly: 60.2, 70.2, 72.2, tax 18.2, benefit 8.2, n=500. All 1,500 verdicts are 0 or 1, with none null. This is **not yet G0**: `memtax audit` also checks question ids against `longmemeval_s.json` (B-001), and that check hasn't run. `test_identity_on_authors_verdicts` now runs and passes.
 - **Scoped by:** `IMPLEMENTATION_PLAN.md`, Phase 0.
 - **Evidence:** Gate G0.
 - **Tried:**
@@ -74,7 +82,7 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
   $ uv run mypy src
   Success: no issues found in 5 source files
   $ uv run pytest -q -m "not gpu"
-  22 passed, 1 skipped
+  23 passed
   $ uv run python scripts/check_repo.py
   OK
   $ uv run memtax smoke --config configs/fixture.yaml
@@ -85,17 +93,18 @@ One entry per bug or feature, traced from start to finish. IDs are `B-NNN` for b
   exit 0
   ```
 
-  The skipped test is `test_identity_on_authors_verdicts`, which needs the authors' verdicts.
-- **Follow-up:** once huggingface.co is reachable:
-  1. Download as in `FLOW.md` "Phase 0 data layout", and record the results repo revision.
+  Rerun on 2026-11-02 after the verdict download; `test_identity_on_authors_verdicts` now runs and passes. `uv run memtax audit --bench longmemeval_s` stops with `FileNotFoundError: ... data/longmemeval/longmemeval_s.json`, as expected.
+- **Follow-up:** once the large-file hosts in B-004 are reachable (steps 1 and 4 are partly or fully done):
+  1. Download `longmemeval_s` and the SimpleMem `memories.tar.gz` as in `FLOW.md` "Phase 0 data layout". The verdict, QA and cost files are already in `data/authors/` at `987bfe5f`.
   2. Run `uv run memtax audit --bench longmemeval_s`; paste its output here. If the loader rejects the files, fix it under D-023.
   3. Inspect `memories.tar.gz` (extract with `filter="data"`) and record its format in `DECISION.md`.
-  4. Recalculate construction cost over all 500 cost files; update `scripts/plan_numbers.py` and B-003.
+  4. Done: construction cost recalculated over all 500 (B-003).
   5. If G0 passes, tag `phase-0-pass` and add the phase note to `REVIEW.md`.
 
 ## B-004: huggingface.co blocked in the cloud session
 
-- **Status:** open; environment, not code
+- **Status:** partly fixed on 2026-11-02. huggingface.co is reachable; large-file CDN hosts are still denied
+- **2026-11-02 update:** API calls and small files work. Large (LFS and Xet) files redirect to hosts that answer `CONNECT tunnel failed, response 403`: `cas-bridge.xethub.hf.co`, `cas-server.xethub.hf.co`, `cdn-lfs.huggingface.co`, `cdn-lfs.hf.co`, and `transfer.xethub.hf.co`. This blocks `longmemeval_s` and every `memories.tar.gz`.
 - **Found by:** Phase 0 download step.
 - **Evidence:** `curl https://huggingface.co/api/datasets/hexuan21/MemoryTax-Res-Qwen3-5-4B` -> `CONNECT tunnel failed, response 403`. The agent proxy logs `connect_rejected` for `huggingface.co:443`. GitHub and PyPI were reachable.
 - **Tried:**
